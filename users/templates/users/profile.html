@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Личный кабинет{% endblock %}
+{% block content %}
+<h1>Личный кабинет</h1>
+<div class="two-col">
+  <section class="panel">
+    <h2 style="margin-top:0">Личные данные</h2>
+    <p><span class="muted">ФИО:</span> {{ user.full_name }}</p>
+    <p><span class="muted">Логин:</span> {{ user.username }}</p>
+    <p><span class="muted">Email:</span> {{ user.email|default:"—" }}</p>
+    <p><span class="muted">Телефон:</span> {{ user.phone|default:"—" }}</p>
+    <a class="btn btn--ghost btn--small" href="{% url 'profile_edit' %}">Изменить</a>
+  </section>
+  <section class="panel">
+    <h2 style="margin-top:0">Адреса доставки</h2>
+    {% for a in addresses %}
+      <p>{{ a }} {% if a.is_default %}<span class="status status--paid">основной</span>{% endif %}<br>
+        <a class="muted" href="{% url 'address_edit' a.pk %}">изменить</a>
+        <form method="post" action="{% url 'address_delete' a.pk %}" class="inline">{% csrf_token %}<button class="link muted">· удалить</button></form>
+      </p>
+    {% empty %}<p class="muted">Адресов пока нет.</p>{% endfor %}
+    <a class="btn btn--ghost btn--small" href="{% url 'address_add' %}">Добавить адрес</a>
+  </section>
+</div>
+<h2>Последние заказы</h2>
+{% include 'store/_orders_table.html' %}
+<p><a href="{% url 'order_list' %}">Вся история покупок →</a></p>
+{% endblock %}

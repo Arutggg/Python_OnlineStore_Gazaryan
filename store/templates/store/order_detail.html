@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Заказ №{{ order.pk }}{% endblock %}
+{% block content %}
+<h1>Заказ №{{ order.pk }} <span class="status status--{{ order.status }}">{{ order.get_status_display }}</span></h1>
+<div class="two-col">
+  <div class="panel">
+    <p><span class="muted">Оформлен:</span> {{ order.created_at|date:"d.m.Y H:i" }}</p>
+    <p><span class="muted">Статус обновлён:</span> {{ order.updated_at|date:"d.m.Y H:i" }}</p>
+    <p><span class="muted">Получатель:</span> {{ order.recipient }}</p>
+    <p><span class="muted">Контакты:</span> {{ order.phone }}, {{ order.email }}</p>
+    <p><span class="muted">Адрес:</span> {{ order.address }}</p>
+    {% if order.comment %}<p><span class="muted">Комментарий:</span> {{ order.comment }}</p>{% endif %}
+    {% if order.status == 'new' %}
+      <form method="post" action="{% url 'order_cancel' order.pk %}" onsubmit="return confirm('Отменить заказ?')">
+        {% csrf_token %}<button class="btn--danger">Отменить заказ</button>
+      </form>
+    {% endif %}
+  </div>
+  <div class="panel">
+    <table>
+      <thead><tr><th>Товар</th><th class="num">Цена</th><th class="num">Кол-во</th><th class="num">Сумма</th></tr></thead>
+      {% for item in order.items.all %}
+        <tr><td><a href="{{ item.product.get_absolute_url }}">{{ item.product.name }}</a></td>
+          <td class="num">{{ item.price|floatformat:"2g" }} ₽</td><td class="num">{{ item.quantity }}</td>
+          <td class="num">{{ item.total|floatformat:"2g" }} ₽</td></tr>
+      {% endfor %}
+    </table>
+    <div class="summary"><span>Итого</span><span class="total">{{ order.total|floatformat:"2g" }} ₽</span></div>
+  </div>
+</div>
+<p><a href="{% url 'order_list' %}">← Все заказы</a></p>
+{% endblock %}

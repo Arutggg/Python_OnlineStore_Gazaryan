@@ -2,7 +2,7 @@
 
 **Имя Фамилия:** Арутюн Газарян
 **Логин на GitHub:** [Arutggg](https://github.com/Arutggg)
-**E-mail:** your-email@example.com
+**E-mail:** arutyun.gaz@bk.ru
 
 ---
 

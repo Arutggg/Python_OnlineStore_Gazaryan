@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Главная{% endblock %}
+{% block content %}
+<h1>Новинки</h1>
+<div class="grid">
+  {% for product in products %}{% include 'store/_product_card.html' %}
+  {% empty %}<p class="muted">Товаров пока нет. Добавьте их в <a href="/admin/">админке</a> или командой <code>load_goods</code>.</p>{% endfor %}
+</div>
+
+{% if categories %}
+<h2>Категории</h2>
+<div class="grid">
+  {% for c in categories %}
+    <a class="card" href="{{ c.get_absolute_url }}"><div class="card__body"><span class="card__name">{{ c.name }}</span></div></a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{% if orders %}
+<div class="panel">
+  <table>
+    <thead><tr><th>Заказ</th><th>Дата</th><th>Товары</th><th>Статус</th><th class="num">Сумма</th></tr></thead>
+    <tbody>
+    {% for order in orders %}
+      <tr>
+        <td><a href="{{ order.get_absolute_url }}">№{{ order.pk }}</a></td>
+        <td>{{ order.created_at|date:"d.m.Y H:i" }}</td>
+        <td class="muted">{% for i in order.items.all %}{{ i.product.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+        <td><span class="status status--{{ order.status }}">{{ order.get_status_display }}</span></td>
+        <td class="num">{{ order.total|floatformat:"2g" }} ₽</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+  <p class="muted">Заказов пока нет.</p>
+{% endif %}

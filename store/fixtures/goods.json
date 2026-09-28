@@ -1,0 +1,82 @@
+{
+  "categories": [
+    {
+      "name": "Чай",
+      "slug": "tea"
+    },
+    {
+      "name": "Посуда",
+      "slug": "dishes"
+    },
+    {
+      "name": "Сладости",
+      "slug": "sweets"
+    }
+  ],
+  "products": [
+    {
+      "name": "Сенча, японский зелёный чай",
+      "category": "tea",
+      "description": "Свежий, травянистый вкус с лёгкой сладостью. 100 г.",
+      "price": 890,
+      "quantity": 25,
+      "image": "images/product_1.png"
+    },
+    {
+      "name": "Ассам, чёрный чай",
+      "category": "tea",
+      "description": "Крепкий, солодовый — хорош с молоком. 100 г.",
+      "price": 650,
+      "quantity": 40,
+      "image": "images/product_2.png"
+    },
+    {
+      "name": "Улун Те Гуань Инь",
+      "category": "tea",
+      "description": "Цветочный аромат, мягкое послевкусие. 50 г.",
+      "price": 1200,
+      "quantity": 3,
+      "image": "images/product_3.png"
+    },
+    {
+      "name": "Чайник из исинской глины",
+      "category": "dishes",
+      "description": "Объём 200 мл, ручная работа.",
+      "price": 4500,
+      "quantity": 2,
+      "image": "images/product_4.png"
+    },
+    {
+      "name": "Пиала керамическая",
+      "category": "dishes",
+      "description": "Объём 120 мл, глазурь селадон.",
+      "price": 690,
+      "quantity": 18,
+      "image": "images/product_5.png"
+    },
+    {
+      "name": "Чахай стеклянный",
+      "category": "dishes",
+      "description": "Термостойкое стекло, 350 мл.",
+      "price": 1100,
+      "quantity": 0,
+      "image": "images/product_6.png"
+    },
+    {
+      "name": "Пастила яблочная",
+      "category": "sweets",
+      "description": "Белёвская, без сахара. 150 г.",
+      "price": 420,
+      "quantity": 30,
+      "image": "images/product_7.png"
+    },
+    {
+      "name": "Мёд гречишный",
+      "category": "sweets",
+      "description": "Алтай, урожай этого года. 250 г.",
+      "price": 780,
+      "quantity": 12,
+      "image": "images/product_8.png"
+    }
+  ]
+}

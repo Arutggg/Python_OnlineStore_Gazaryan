@@ -1,0 +1,14 @@
+<a class="card" href="{{ product.get_absolute_url }}">
+  <div class="card__img">
+    {% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">{% else %}нет фото{% endif %}
+  </div>
+  <div class="card__body">
+    <span class="card__cat">{{ product.category }}</span>
+    <span class="card__name">{{ product.name }}</span>
+    <span class="price">{{ product.price|floatformat:"0g" }} ₽</span>
+    {% with left=product.in_stock %}
+      {% if left == 0 %}<span class="stock-out">Нет в наличии</span>
+      {% elif left < 5 %}<span class="stock-low">Осталось {{ left }} шт.</span>{% endif %}
+    {% endwith %}
+  </div>
+</a>

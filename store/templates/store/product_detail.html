@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<p class="muted"><a href="{{ product.category.get_absolute_url }}">{{ product.category }}</a></p>
+<div class="product">
+  <div class="product__img">
+    {% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<span class="muted">нет фото</span>{% endif %}
+  </div>
+  <div>
+    <h1>{{ product.name }}</h1>
+    <div class="price">{{ product.price|floatformat:"2g" }} ₽</div>
+    <p>{{ product.description|linebreaksbr }}</p>
+
+    {% if product.in_stock %}
+      <p class="muted">В наличии: {{ product.in_stock }} шт.</p>
+      {% if user.is_authenticated %}
+      <form method="post" action="{% url 'add_to_cart' %}" class="buy">
+        {% csrf_token %}
+        <input type="hidden" name="product" value="{{ product.pk }}">
+        <label>Количество<br>
+          <input type="number" name="quantity" value="1" min="1" max="{{ product.in_stock }}">
+        </label>
+        <button type="submit">В корзину</button>
+      </form>
+      {% else %}
+        <p><a class="btn" href="{% url 'login' %}?next={{ request.path }}">Войдите, чтобы купить</a></p>
+      {% endif %}
+    {% else %}
+      <p class="stock-out">Нет в наличии</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
