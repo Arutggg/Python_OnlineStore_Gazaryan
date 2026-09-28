@@ -1,0 +1,202 @@
+[
+{
+  "model": "store.category",
+  "pk": 1,
+  "fields": {
+    "name": "Чай",
+    "slug": "tea"
+  }
+},
+{
+  "model": "store.category",
+  "pk": 2,
+  "fields": {
+    "name": "Посуда",
+    "slug": "dishes"
+  }
+},
+{
+  "model": "store.category",
+  "pk": 3,
+  "fields": {
+    "name": "Сладости",
+    "slug": "sweets"
+  }
+},
+{
+  "model": "store.product",
+  "pk": 1,
+  "fields": {
+    "category": 1,
+    "name": "Сенча, японский зелёный чай",
+    "description": "Свежий, травянистый вкус с лёгкой сладостью. 100 г.",
+    "price": "890.00",
+    "image": "products/product_1.png",
+    "is_active": true,
+    "created_at": "2026-09-28T14:51:58.951Z"
+  }
+},
+{
+  "model": "store.product",
+  "pk": 2,
+  "fields": {
+    "category": 1,
+    "name": "Ассам, чёрный чай",
+    "description": "Крепкий, солодовый — хорош с молоком. 100 г.",
+    "price": "650.00",
+    "image": "products/product_2.png",
+    "is_active": true,
+    "created_at": "2026-09-28T14:51:58.956Z"
+  }
+},
+{
+  "model": "store.product",
+  "pk": 3,
+  "fields": {
+    "category": 1,
+    "name": "Улун Те Гуань Инь",
+    "description": "Цветочный аромат, мягкое послевкусие. 50 г.",
+    "price": "1200.00",
+    "image": "products/product_3.png",
+    "is_active": true,
+    "created_at": "2026-09-28T14:51:58.959Z"
+  }
+},
+{
+  "model": "store.product",
+  "pk": 4,
+  "fields": {
+    "category": 2,
+    "name": "Чайник из исинской глины",
+    "description": "Объём 200 мл, ручная работа.",
+    "price": "4500.00",
+    "image": "products/product_4.png",
+    "is_active": true,
+    "created_at": "2026-09-28T14:51:58.963Z"
+  }
+},
+{
+  "model": "store.product",
+  "pk": 5,
+  "fields": {
+    "category": 2,
+    "name": "Пиала керамическая",
+    "description": "Объём 120 мл, глазурь селадон.",
+    "price": "690.00",
+    "image": "products/product_5.png",
+    "is_active": true,
+    "created_at": "2026-09-28T14:51:58.966Z"
+  }
+},
+{
+  "model": "store.product",
+  "pk": 6,
+  "fields": {
+    "category": 2,
+    "name": "Чахай стеклянный",
+    "description": "Термостойкое стекло, 350 мл.",
+    "price": "1100.00",
+    "image": "products/product_6.png",
+    "is_active": true,
+    "created_at": "2026-09-28T14:51:58.970Z"
+  }
+},
+{
+  "model": "store.product",
+  "pk": 7,
+  "fields": {
+    "category": 3,
+    "name": "Пастила яблочная",
+    "description": "Белёвская, без сахара. 150 г.",
+    "price": "420.00",
+    "image": "products/product_7.png",
+    "is_active": true,
+    "created_at": "2026-09-28T14:51:58.974Z"
+  }
+},
+{
+  "model": "store.product",
+  "pk": 8,
+  "fields": {
+    "category": 3,
+    "name": "Мёд гречишный",
+    "description": "Алтай, урожай этого года. 250 г.",
+    "price": "780.00",
+    "image": "products/product_8.png",
+    "is_active": true,
+    "created_at": "2026-09-28T14:51:58.978Z"
+  }
+},
+{
+  "model": "store.stockbalance",
+  "pk": 1,
+  "fields": {
+    "product": 1,
+    "quantity": 25,
+    "updated_at": "2026-09-28T14:51:58.954Z"
+  }
+},
+{
+  "model": "store.stockbalance",
+  "pk": 2,
+  "fields": {
+    "product": 2,
+    "quantity": 40,
+    "updated_at": "2026-09-28T14:51:58.958Z"
+  }
+},
+{
+  "model": "store.stockbalance",
+  "pk": 3,
+  "fields": {
+    "product": 3,
+    "quantity": 3,
+    "updated_at": "2026-09-28T14:51:58.961Z"
+  }
+},
+{
+  "model": "store.stockbalance",
+  "pk": 4,
+  "fields": {
+    "product": 4,
+    "quantity": 2,
+    "updated_at": "2026-09-28T14:51:58.965Z"
+  }
+},
+{
+  "model": "store.stockbalance",
+  "pk": 5,
+  "fields": {
+    "product": 5,
+    "quantity": 18,
+    "updated_at": "2026-09-28T14:51:58.968Z"
+  }
+},
+{
+  "model": "store.stockbalance",
+  "pk": 6,
+  "fields": {
+    "product": 6,
+    "quantity": 0,
+    "updated_at": "2026-09-28T14:51:58.972Z"
+  }
+},
+{
+  "model": "store.stockbalance",
+  "pk": 7,
+  "fields": {
+    "product": 7,
+    "quantity": 30,
+    "updated_at": "2026-09-28T14:51:58.976Z"
+  }
+},
+{
+  "model": "store.stockbalance",
+  "pk": 8,
+  "fields": {
+    "product": 8,
+    "quantity": 12,
+    "updated_at": "2026-09-28T14:51:58.979Z"
+  }
+}
+]

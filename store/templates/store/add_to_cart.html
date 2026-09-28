@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Добавить в корзину{% endblock %}
+{% block content %}
+<h1>Добавить в корзину</h1>
+<form method="post" action="{% url 'add_to_cart' %}" class="form panel">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Добавить в корзину</button>
+</form>
+{% endblock %}

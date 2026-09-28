@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Корзина{% endblock %}
+{% block content %}
+<h1>Корзина</h1>
+{% if items %}
+<div class="panel">
+  <table>
+    <thead><tr><th>Товар</th><th class="num">Цена</th><th>Количество</th><th class="num">Сумма</th><th></th></tr></thead>
+    <tbody>
+    {% for item in items %}
+      <tr>
+        <td><a href="{{ item.product.get_absolute_url }}">{{ item.product.name }}</a>
+          <div class="muted">на складе {{ item.product.in_stock }} шт.</div></td>
+        <td class="num">{{ item.product.price|floatformat:"2g" }} ₽</td>
+        <td>
+          <form method="post" action="{% url 'cart_update' item.product.pk %}" class="qty-form">
+            {% csrf_token %}
+            <input type="number" name="quantity" value="{{ item.quantity }}" min="0" max="{{ item.product.in_stock }}">
+            <button class="btn--ghost btn--small">OK</button>
+          </form>
+        </td>
+        <td class="num">{{ item.total|floatformat:"2g" }} ₽</td>
+        <td>
+          <form method="post" action="{% url 'cart_remove' item.product.pk %}">
+            {% csrf_token %}<button class="btn--danger btn--small" title="Удалить">✕</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div class="summary">
+    <a href="{% url 'product_list' %}" class="muted">← Продолжить покупки</a>
+    <span class="total">Итого: {{ cart.total|floatformat:"2g" }} ₽</span>
+    <a class="btn" href="{% url 'checkout' %}">Оформить заказ</a>
+  </div>
+</div>
+{% else %}
+  <p class="muted">Корзина пуста. <a href="{% url 'product_list' %}">Перейти в каталог</a></p>
+{% endif %}
+{% endblock %}

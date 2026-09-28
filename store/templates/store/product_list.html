@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}{{ current_category|default:"Каталог" }}{% endblock %}
+{% block content %}
+<h1>{% if query %}Поиск: «{{ query }}»{% else %}{{ current_category|default:"Каталог" }}{% endif %}</h1>
+<div class="layout">
+  <aside class="sidebar">
+    <a href="{% url 'product_list' %}" {% if not current_category %}class="active"{% endif %}>Все товары</a>
+    {% for c in categories %}
+      <a href="{{ c.get_absolute_url }}" {% if c == current_category %}class="active"{% endif %}>{{ c.name }}</a>
+    {% endfor %}
+  </aside>
+  <section>
+    <div class="grid">
+      {% for product in products %}{% include 'store/_product_card.html' %}
+      {% empty %}<p class="muted">Ничего не найдено.</p>{% endfor %}
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+      {% if page_obj.has_previous %}<a class="btn btn--ghost btn--small" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}">←</a>{% endif %}
+      <span class="muted">{{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a class="btn btn--ghost btn--small" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}">→</a>{% endif %}
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
