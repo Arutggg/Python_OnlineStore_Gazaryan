@@ -8,3 +8,6 @@ venv/
 static/
 media/
 *.sqlite3
+backups/
+.coverage
+htmlcov/

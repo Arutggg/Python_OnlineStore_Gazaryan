@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.venv
+venv
+__pycache__
+*.pyc
+.coverage
+htmlcov
+static
+media
+backups
+docs/screenshots
+.idea
+.vscode

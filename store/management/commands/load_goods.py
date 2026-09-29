@@ -1,5 +1,7 @@
+"""Команда загрузки товаров и остатков из JSON."""
+
 import json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from django.conf import settings
@@ -16,6 +18,8 @@ DEFAULT_FILE = Path(settings.BASE_DIR) / 'store' / 'fixtures' / 'goods.json'
 
 
 class Command(BaseCommand):
+    """Загрузка товаров: простой формат или фикстура Django."""
+
     help = (
         'Загрузить товары и остатки из JSON. Понимает два формата: '
         'фикстуру Django (передаётся в loaddata) и простой формат '
@@ -23,74 +27,88 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
+        """Аргументы: путь к файлу и флаг --add."""
         parser.add_argument('file', nargs='?', default=str(DEFAULT_FILE), help='путь к JSON')
         parser.add_argument(
-            '--add', action='store_true',
-            help='прибавить количество к остатку, а не заменить его',
+            '--add', action='store_true', help='прибавить количество к остатку, а не заменить его',
+        )
+        parser.add_argument(
+            '--if-empty', action='store_true', help='ничего не делать, если товары уже есть (для автозапуска)',
         )
 
-    def handle(self, file, add, **options):
+    def handle(self, file, add, if_empty, **options):
+        """Прочитать файл и загрузить данные."""
+        if if_empty and Product.objects.exists():
+            self.stdout.write('Товары уже загружены, пропускаю.')
+            return
         path = Path(file)
         if not path.exists():
             raise CommandError(f'Файл не найден: {path}')
         try:
             data = json.loads(path.read_text(encoding='utf-8'))
-        except json.JSONDecodeError as e:
-            raise CommandError(f'Некорректный JSON: {e}')
+        except json.JSONDecodeError as error:
+            raise CommandError(f'Некорректный JSON: {error}')
 
-        # Фикстура Django (результат dumpdata) — отдаём стандартной команде
-        if isinstance(data, list):
+        if isinstance(data, list):  # результат dumpdata — отдаём стандартной команде
             call_command('loaddata', str(path), verbosity=options['verbosity'])
             return
 
         self.base_dir = path.parent
-        created, updated = self._load(data, add)
-        self.stdout.write(self.style.SUCCESS(
-            f'Готово: создано {created}, обновлено {updated} товаров.'
-        ))
+        with transaction.atomic():
+            categories = self._load_categories(data.get('categories', []))
+            created, updated = self._load_products(data.get('products', []), categories, add)
+        self.stdout.write(self.style.SUCCESS(f'Готово: создано {created}, обновлено {updated} товаров.'))
 
-    @transaction.atomic
-    def _load(self, data, add):
+    def _load_categories(self, items):
+        """Создать или обновить категории. Вернуть словарь slug → Category."""
         categories = {}
-        for c in data.get('categories', []):
-            slug = c.get('slug') or slugify(c['name'], allow_unicode=True)
-            categories[slug], _ = Category.objects.update_or_create(
-                slug=slug, defaults={'name': c['name']}
-            )
+        for item in items:
+            slug = item.get('slug') or slugify(item['name'], allow_unicode=True)
+            categories[slug], _ = Category.objects.update_or_create(slug=slug, defaults={'name': item['name']})
+        return categories
 
+    def _load_products(self, items, categories, add):
+        """Создать или обновить товары и их остатки. Вернуть (создано, обновлено)."""
         created = updated = 0
-        for i, p in enumerate(data.get('products', []), 1):
-            try:
-                cat_slug = p['category']
-                category = categories.get(cat_slug) or Category.objects.get(slug=cat_slug)
-                defaults = {
-                    'category': category,
-                    'description': p.get('description', ''),
-                    'price': Decimal(str(p['price'])),
-                }
-            except (KeyError, Category.DoesNotExist) as e:
-                raise CommandError(f'Товар №{i}: нет поля или категории {e}')
-            if p.get('image'):
-                defaults['image'] = self._image(p['image'])
-
-            product, is_new = Product.objects.update_or_create(name=p['name'], defaults=defaults)
+        for number, item in enumerate(items, 1):
+            product, is_new = Product.objects.update_or_create(
+                name=item['name'], defaults=self._product_fields(number, item, categories),
+            )
             created += is_new
             updated += not is_new
 
             stock, _ = StockBalance.objects.get_or_create(product=product)
-            qty = int(p.get('quantity', 0))
-            stock.quantity = stock.quantity + qty if add else qty
+            quantity = int(item.get('quantity', 0))
+            stock.quantity = stock.quantity + quantity if add else quantity
             stock.save()
             self.stdout.write(f'  {product.name}: {stock.quantity} шт.')
         return created, updated
 
-    def _image(self, value):
-        """Файл рядом с JSON копируется в MEDIA_ROOT/products/, иначе путь берётся как есть."""
-        src = self.base_dir / value
-        if not src.is_file():
+    def _product_fields(self, number, item, categories):
+        """Проверить запись товара и подготовить поля модели."""
+        try:
+            slug = item['category']
+            fields = {
+                'category': categories.get(slug) or Category.objects.get(slug=slug),
+                'description': item.get('description', ''),
+                'price': Decimal(str(item['price'])),
+            }
+        except (KeyError, Category.DoesNotExist, InvalidOperation) as error:
+            raise CommandError(f'Товар №{number}: ошибка в данных ({error!r})')
+        if item.get('image'):
+            fields['image'] = self._copy_image(item['image'])
+        return fields
+
+    def _copy_image(self, value):
+        """Скопировать картинку, лежащую рядом с JSON, в MEDIA_ROOT/products/.
+
+        Если такого файла нет, значение считается уже готовым путём в хранилище.
+        """
+        source = self.base_dir / value
+        if not source.is_file():
             return value
-        name = f'products/{src.name}'
+        name = f'products/{source.name}'
         if not default_storage.exists(name):
-            with src.open('rb') as f:
-                name = default_storage.save(name, File(f))
+            with source.open('rb') as file:
+                name = default_storage.save(name, File(file))
         return name
