@@ -1,0 +1,10 @@
+# Режим разработки: код монтируется в контейнер и подхватывается без пересборки.
+# Запуск: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+services:
+  web:
+    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      DJANGO_SETTINGS_MODULE: online_store.settings.dev
+    volumes:
+      - .:/app
+      - media-data:/app/media

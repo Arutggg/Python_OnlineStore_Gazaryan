@@ -1,3 +1,5 @@
+"""URL регистрации, входа и личного кабинета."""
+
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
@@ -10,7 +12,7 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(template_name='registration/logged_out.html'), name='logout'),
     path('profile/', views.profile, name='profile'),
     path('profile/edit/', views.profile_edit, name='profile_edit'),
-    path('profile/addresses/add/', views.address_add, name='address_add'),
-    path('profile/addresses/<int:pk>/edit/', views.address_edit, name='address_edit'),
+    path('profile/addresses/add/', views.address_form, name='address_add'),
+    path('profile/addresses/<int:pk>/edit/', views.address_form, name='address_edit'),
     path('profile/addresses/<int:pk>/delete/', views.address_delete, name='address_delete'),
 ]

@@ -6,116 +6,130 @@
 
 ---
 
-Backend интернет-магазина на Django и PostgreSQL. Это первая часть учебного проекта.
+Интернет-магазин на Django и PostgreSQL, упакованный в Docker.
+
+- **Часть 1** (`online-store-part1`): модели, каталог, корзина, заказы, личный кабинет, management-команды.
+- **Часть 2** (`online-store-part2`): Docker, автотесты и unit-тесты, рефакторинг.
 
 ![Каталог](docs/screenshots/catalog.png)
 
-## Что умеет
+## Возможности
 
 - **Каталог.** Категории, поиск, пагинация, карточка товара: название, изображение, описание, цена и остаток.
-- **Корзина.** Добавление, изменение количества, удаление. **Положить в корзину больше, чем есть на складе, нельзя.** Это проверяется в форме, в `Cart.add_item` и ещё раз при оформлении заказа, с блокировкой строк `SELECT … FOR UPDATE`.
-- **Заказ.** Данные получателя и адрес подставляются из профиля. Остатки списываются в одной транзакции, а цена фиксируется на момент покупки.
-- **Личный кабинет.** ФИО (фамилия, имя, отчество отдельными полями), контакты, несколько адресов доставки, история покупок и статусы заказов. Новый заказ можно отменить, и товар вернётся на склад.
-- **Регистрация, вход и выход.** Выход работает через POST, как требует Django 5.
-- **Админка.** Тема `django-admin-interface`, превью фото, остатки прямо в карточке товара, смена статуса заказа из списка.
-- **Management-команды** для загрузки товаров и выгрузки остатков.
+- **Корзина.** Добавить, изменить количество, удалить. **Положить в корзину больше, чем есть на складе, нельзя**, а при оформлении заказа остаток проверяется ещё раз с блокировкой строк (`SELECT … FOR UPDATE`).
+- **Заказы.** Данные получателя подставляются из профиля, остатки списываются в одной транзакции, цена фиксируется на момент покупки. В истории покупок есть фильтр «ожидают отправки / отправленные», новый или оплаченный заказ можно отменить.
+- **Личный кабинет.** ФИО отдельными полями, контакты, несколько адресов доставки, регистрация, вход и выход.
+- **Админка.** Товары с превью и остатками, клиенты с адресами, заказы. Статус заказа меняется действиями («Оплачен», «Передать в доставку», «Доставлен», «Отменить»), поэтому соблюдаются правила переходов.
+- **Команды.** `load_goods` загружает товары, `export_product_residue` и `unload_product_residue` выгружают остатки.
 
-## Структура базы данных
+## Запуск в Docker
 
-Схема и описание нормализации лежат в [docs/database.md](docs/database.md). Там же исходник для draw.io: [docs/db_schema.drawio](docs/db_schema.drawio).
-
-![Схема БД](docs/db_schema.png)
-
-## Запуск
+Нужен установленный [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
 ```bash
-python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env              # укажите свои данные PostgreSQL
+cp .env.example .env
+# в .env замените DJANGO_SECRET_KEY, новый ключ можно получить так:
+python3 -c "import secrets; print(secrets.token_urlsafe(50))"
+
+docker compose up --build
 ```
 
-Создайте базу в PostgreSQL (`psql -U postgres`):
+Сайт откроется на http://localhost:8000, админка на http://localhost:8000/admin/ (логин и пароль берутся из `DJANGO_SUPERUSER_*` в `.env`).
 
-```sql
-CREATE DATABASE online_store;
-CREATE USER store_user WITH PASSWORD 'store_pass';
-ALTER DATABASE online_store OWNER TO store_user;
-```
+При старте контейнер ждёт базу, применяет миграции, загружает демо-товары, если база пустая, и создаёт администратора (`docker/entrypoint.sh`).
 
-Затем выполните:
+| Файл | Назначение |
+|---|---|
+| `Dockerfile` | образ приложения: зависимости, код, `collectstatic`, запуск через gunicorn от непривилегированного пользователя |
+| `docker-compose.yml` | сервисы `db` (PostgreSQL 16) и `web`, тома для базы и загруженных картинок, healthcheck базы |
+| `docker-compose.dev.yml` | режим разработки: код монтируется в контейнер (`.:/app`), работает `runserver` с автоперезагрузкой |
+| `docker/entrypoint.sh` | ожидание базы, `migrate`, демо-данные, суперпользователь |
+
+Режим разработки:
 
 ```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+Полезные команды:
+
+```bash
+docker compose exec web python manage.py test          # тесты внутри контейнера
+docker compose exec web python manage.py createsuperuser
+docker compose down        # остановить; добавьте -v, чтобы удалить и данные
+```
+
+Миграции выполняются при старте контейнера, а не в `Dockerfile`: во время `docker build` база данных ещё не запущена.
+
+## Локальный запуск без Docker
+
+```bash
+python -m venv venv && source venv/bin/activate
+pip install -r requirements-dev.txt
+cp .env.example .env              # для локальной базы оставьте DB_HOST=localhost
 python manage.py migrate
+python manage.py load_goods
 python manage.py createsuperuser
-python manage.py collectstatic --clear
-python manage.py load_goods       # демо-товары с картинками и остатками
 python manage.py runserver
 ```
 
-Сайт будет на http://localhost:8000/, админка на http://localhost:8000/admin/.
-
-## Команды для товаров и остатков
-
-```bash
-# Загрузка товаров. По умолчанию берётся store/fixtures/goods.json
-python manage.py load_goods
-python manage.py load_goods path/to/goods.json --add   # прибавить к остаткам, а не заменить
-python manage.py load_goods store/fixtures/data.json   # фикстуру Django команда передаст в loaddata
-
-# Выгрузка остатков (команды export_product_residue и unload_product_residue одинаковые)
-python manage.py export_product_residue                       # JSON в консоль
-python manage.py export_product_residue -o residue.csv --format csv
-python manage.py unload_product_residue --only-available
-python manage.py export_product_residue --format fixture -o stock.json   # потом можно загрузить через loaddata
-
-# Стандартные команды Django
-python manage.py dumpdata store.Category store.Product store.StockBalance --indent 2 -o data.json
-python manage.py loaddata data.json
-```
-
-Формат `goods.json`:
-
-```json
-{
-  "categories": [{"name": "Чай", "slug": "tea"}],
-  "products": [
-    {"name": "Сенча", "category": "tea", "description": "...", "price": 890,
-     "quantity": 25, "image": "images/product_1.png"}
-  ]
-}
-```
-
-Путь `image` указывается относительно JSON-файла. Картинка копируется в `media/products/`.
+Настройки разделены по окружениям: `online_store/settings/base.py` (общие), `dev.py` (по умолчанию для `manage.py`, `DEBUG=True`) и `production.py` (Docker и сервер: `DEBUG=False`, WhiteNoise, обязательный секретный ключ).
 
 ## Тесты
 
 ```bash
-python manage.py test
+python manage.py test                      # 98 тестов
+coverage run manage.py test && coverage report
+flake8 && isort --check-only .
 ```
 
-Тестами покрыто:
-- ограничение корзины по остатку;
-- списание остатков при заказе;
-- повторная проверка остатка при оформлении;
-- отмена заказа;
-- доступ к чужому заказу;
-- регистрация и выход;
-- обе команды.
+| Файл | Что проверяет |
+|---|---|
+| `store/tests/test_models.py` | модели: поля, ограничения БД (остаток ≥ 0, уникальность), корзина, заказы, выборки отправленных и неотправленных заказов |
+| `store/tests/test_services.py` | **unit-тесты** бизнес-логики без HTTP: добавление в корзину, оформление и отправка заказа, отмена с возвратом на склад, правила смены статуса |
+| `store/tests/test_views.py` | страницы каталога, корзины, оформления, истории заказов и админки |
+| `store/tests/test_commands.py` | команды `load_goods` и `export_product_residue` |
+| `users/tests/` | модель пользователя и адреса, регистрация, вход, выход, личный кабинет |
+
+Покрытие кода — 98%. Результаты ручного тестирования записаны в [docs/testing.md](docs/testing.md).
+
+## Рефакторинг
+
+Что изменено и почему, описано в [docs/refactoring.md](docs/refactoring.md). Главное: бизнес-логика вынесена из представлений в `store/services.py`, чтобы её можно было тестировать отдельно от HTTP.
+
+## Команды для товаров и остатков
+
+```bash
+python manage.py load_goods                            # store/fixtures/goods.json
+python manage.py load_goods path/to/goods.json --add   # прибавить к остаткам
+python manage.py load_goods --if-empty                 # только если товаров ещё нет
+python manage.py export_product_residue                # остатки в JSON
+python manage.py unload_product_residue --format csv -o residue.csv
+python manage.py export_product_residue --format fixture -o stock.json   # для loaddata
+```
+
+## Структура базы данных
+
+Схема и описание нормализации лежат в [docs/database.md](docs/database.md), исходник для draw.io — в [docs/db_schema.drawio](docs/db_schema.drawio).
+
+![Схема БД](docs/db_schema.png)
 
 ## Структура проекта
 
 ```
-online_store/     настройки и корневые URL
-users/            модель User (AbstractUser + отчество, телефон), Address, регистрация, личный кабинет
-store/            Category, Product, StockBalance, Cart, CartItem, Order, OrderItem
-  services.py     оформление и отмена заказа (транзакции, блокировка остатков)
-  management/     load_goods, export_product_residue, unload_product_residue
-  fixtures/       демо-данные (goods.json, data.json, картинки)
-templates/        base.html, вход, выход, регистрация
-docs/             схема БД и скриншоты
+online_store/settings/   настройки: base, dev, production
+users/                   пользователь, адреса, регистрация, личный кабинет
+store/
+  models.py              каталог, склад, корзина, заказы
+  services.py            бизнес-логика: корзина, заказы, статусы
+  exceptions.py          ошибки бизнес-логики
+  views.py               HTTP-слой: формы → сервисы → шаблоны
+  management/commands/   load_goods, export_product_residue, unload_product_residue
+  tests/                 тесты моделей, сервисов, страниц и команд
+docker/entrypoint.sh     подготовка контейнера
+docs/                    схема БД, отчёты о тестировании и рефакторинге
 ```
 
 ## Стек
 
-Python 3.11+, Django 5.2, PostgreSQL 16, psycopg 3, django-admin-interface, Pillow.
+Python 3.12, Django 5.2, PostgreSQL 16, psycopg 3, gunicorn, WhiteNoise, Docker Compose, django-admin-interface, Pillow, coverage, flake8, isort.

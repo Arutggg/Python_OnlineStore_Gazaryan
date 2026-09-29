@@ -10,7 +10,7 @@
     <p><span class="muted">Контакты:</span> {{ order.phone }}, {{ order.email }}</p>
     <p><span class="muted">Адрес:</span> {{ order.address }}</p>
     {% if order.comment %}<p><span class="muted">Комментарий:</span> {{ order.comment }}</p>{% endif %}
-    {% if order.status == 'new' %}
+    {% if can_cancel %}
       <form method="post" action="{% url 'order_cancel' order.pk %}" onsubmit="return confirm('Отменить заказ?')">
         {% csrf_token %}<button class="btn--danger">Отменить заказ</button>
       </form>

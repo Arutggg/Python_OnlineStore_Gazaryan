@@ -1,11 +1,10 @@
-from django.db.models import Sum
+"""Контекст-процессоры магазина."""
 
-from store.models import CartItem
+from store.services import get_cart_count
 
 
 def cart(request):
-    """Количество товаров в корзине — для счётчика в шапке."""
+    """Добавить в шаблоны количество товаров в корзине (для счётчика в шапке)."""
     if not request.user.is_authenticated:
         return {'cart_count': 0}
-    count = CartItem.objects.filter(cart__user=request.user).aggregate(s=Sum('quantity'))['s']
-    return {'cart_count': count or 0}
+    return {'cart_count': get_cart_count(request.user)}

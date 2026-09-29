@@ -2,5 +2,10 @@
 {% block title %}Мои заказы{% endblock %}
 {% block content %}
 <h1>История покупок</h1>
+<nav class="tabs">
+  <a href="{% url 'order_list' %}" {% if not show %}class="active"{% endif %}>Все</a>
+  <a href="?show=pending" {% if show == 'pending' %}class="active"{% endif %}>Ожидают отправки</a>
+  <a href="?show=sent" {% if show == 'sent' %}class="active"{% endif %}>Отправленные</a>
+</nav>
 {% include 'store/_orders_table.html' %}
 {% endblock %}

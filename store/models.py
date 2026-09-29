@@ -1,3 +1,9 @@
+"""Модели магазина: каталог, склад, корзина и заказы.
+
+Бизнес-логика (добавление в корзину, оформление заказа, смена статуса)
+находится в ``store.services``, модели отвечают только за хранение данных.
+"""
+
 from decimal import Decimal
 
 from django.conf import settings
@@ -5,8 +11,12 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
 
+from users.models import AddressFields, join_full_name
+
 
 class Category(models.Model):
+    """Категория товаров."""
+
     name = models.CharField('название', max_length=255, unique=True)
     slug = models.SlugField('slug', max_length=255, unique=True)
 
@@ -19,10 +29,13 @@ class Category(models.Model):
         return self.name
 
     def get_absolute_url(self):
+        """Страница категории в каталоге."""
         return reverse('category_detail', args=[self.slug])
 
 
 class Product(models.Model):
+    """Товар каталога."""
+
     category = models.ForeignKey(
         Category, on_delete=models.PROTECT, related_name='products', verbose_name='категория'
     )
@@ -44,6 +57,7 @@ class Product(models.Model):
         return self.name
 
     def get_absolute_url(self):
+        """Карточка товара."""
         return reverse('product_detail', args=[self.pk])
 
     @property
@@ -71,6 +85,8 @@ class StockBalance(models.Model):
 
 
 class Cart(models.Model):
+    """Корзина покупателя. У каждого пользователя одна корзина."""
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='cart', verbose_name='пользователь',
@@ -84,43 +100,20 @@ class Cart(models.Model):
     def __str__(self):
         return f'Корзина {self.user}'
 
-    def add_item(self, product, quantity=1):
-        """Добавить товар. Итоговое количество не может превысить остаток.
-
-        Возвращает количество, которое реально лежит в корзине после добавления.
-        """
-        item, _ = self.items.get_or_create(product=product, defaults={'quantity': 0})
-        item.quantity = min(item.quantity + quantity, product.in_stock)
-        if item.quantity <= 0:
-            item.delete()
-            return 0
-        item.save(update_fields=['quantity'])
-        return item.quantity
-
-    def set_quantity(self, product, quantity):
-        if quantity <= 0:
-            self.items.filter(product=product).delete()
-            return 0
-        quantity = min(quantity, product.in_stock)
-        self.items.update_or_create(product=product, defaults={'quantity': quantity})
-        return quantity
-
-    def remove_item(self, product):
-        self.items.filter(product=product).delete()
-
-    def clear(self):
-        self.items.all().delete()
-
     @property
     def total(self):
+        """Стоимость всех товаров в корзине."""
         return sum((item.total for item in self.items.select_related('product')), Decimal('0'))
 
     @property
     def count(self):
-        return self.items.aggregate(s=models.Sum('quantity'))['s'] or 0
+        """Общее количество единиц товара в корзине."""
+        return self.items.aggregate(total=models.Sum('quantity'))['total'] or 0
 
 
 class CartItem(models.Model):
+    """Позиция корзины: товар и его количество."""
+
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items', verbose_name='корзина')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='товар')
     quantity = models.PositiveIntegerField('количество', default=1)
@@ -139,10 +132,29 @@ class CartItem(models.Model):
 
     @property
     def total(self):
+        """Стоимость позиции по текущей цене товара."""
         return self.product.price * self.quantity
 
 
-class Order(models.Model):
+class OrderQuerySet(models.QuerySet):
+    """Выборки заказов по состоянию доставки."""
+
+    def sent(self):
+        """Заказы, переданные в доставку или уже доставленные."""
+        return self.filter(status__in=Order.SENT_STATUSES)
+
+    def pending(self):
+        """Заказы, которые ещё не отправлены покупателю."""
+        return self.filter(status__in=Order.PENDING_STATUSES)
+
+
+class Order(AddressFields):
+    """Заказ покупателя.
+
+    ФИО, контакты и адрес копируются в заказ при оформлении: если клиент
+    потом изменит профиль, история заказов останется прежней.
+    """
+
     class Status(models.TextChoices):
         NEW = 'new', 'Новый'
         PAID = 'paid', 'Оплачен'
@@ -150,27 +162,24 @@ class Order(models.Model):
         DELIVERED = 'delivered', 'Доставлен'
         CANCELLED = 'cancelled', 'Отменён'
 
+    SENT_STATUSES = (Status.SHIPPED, Status.DELIVERED)
+    PENDING_STATUSES = (Status.NEW, Status.PAID)
+
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-        related_name='orders', verbose_name='покупатель',
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='orders', verbose_name='покупатель',
     )
     status = models.CharField('статус', max_length=20, choices=Status.choices, default=Status.NEW)
-    # Данные получателя и адрес копируются в заказ: если клиент потом
-    # изменит профиль, история заказов останется прежней.
     last_name = models.CharField('фамилия', max_length=150)
     first_name = models.CharField('имя', max_length=150)
     middle_name = models.CharField('отчество', max_length=150, blank=True)
     email = models.EmailField('email')
     phone = models.CharField('телефон', max_length=16)
-    postal_code = models.CharField('индекс', max_length=6, blank=True)
-    city = models.CharField('город', max_length=100)
-    street = models.CharField('улица', max_length=150)
-    house = models.CharField('дом', max_length=20)
-    apartment = models.CharField('квартира', max_length=20, blank=True)
     comment = models.TextField('комментарий', blank=True)
     total = models.DecimalField('сумма', max_digits=12, decimal_places=2, default=0)
     created_at = models.DateTimeField('создан', auto_now_add=True)
     updated_at = models.DateTimeField('обновлён', auto_now=True)
+
+    objects = OrderQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'заказ'
@@ -181,21 +190,18 @@ class Order(models.Model):
         return f'Заказ №{self.pk}'
 
     def get_absolute_url(self):
+        """Страница заказа в личном кабинете."""
         return reverse('order_detail', args=[self.pk])
 
     @property
     def recipient(self):
-        return ' '.join(p for p in (self.last_name, self.first_name, self.middle_name) if p)
-
-    @property
-    def address(self):
-        parts = [self.postal_code, self.city, self.street, f'д. {self.house}']
-        if self.apartment:
-            parts.append(f'кв. {self.apartment}')
-        return ', '.join(p for p in parts if p)
+        """ФИО получателя."""
+        return join_full_name(self.last_name, self.first_name, self.middle_name)
 
 
 class OrderItem(models.Model):
+    """Позиция заказа. Цена фиксируется на момент покупки."""
+
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', verbose_name='заказ')
     product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name='товар')
     price = models.DecimalField('цена на момент заказа', max_digits=10, decimal_places=2)
@@ -210,4 +216,5 @@ class OrderItem(models.Model):
 
     @property
     def total(self):
+        """Стоимость позиции."""
         return self.price * self.quantity
